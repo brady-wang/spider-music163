@@ -1,132 +1,86 @@
-#! /usr/bin/env python
-# coding='utf-8'
-
-
-
+# -*- coding: utf-8 -*-
+# @Time    : 2018/3/15 15:27
+# @Author  : XueLei
+# @Site    :
+# @File    : neteasemusic.py
+# @Software: PyCharm
+#抓取某一首歌下面的评论
 
 import requests
-import math
-import random
-# pycrypto
-from Crypto.Cipher import AES
-import codecs
-import base64
+from requests.exceptions import RequestException
+from urllib.parse import urlencode
+import json
+from multiprocessing import Pool#多进程池
 
-
-# 构造函数获取歌手信息
-def get_comments_json(url, data):
-    headers={'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-             'Accept-Encoding': 'gzip, deflate',
-             'Accept-Language': 'zh-CN,zh;q=0.9',
-             'Connection': 'keep-alive',
-             'Cookie': 'WM_TID=36fj4OhQ7NdU9DhsEbdKFbVmy9tNk1KM; _iuqxldmzr_=32; _ntes_nnid=26fc3120577a92f179a3743269d8d0d9,1536048184013; _ntes_nuid=26fc3120577a92f179a3743269d8d0d9; __utmc=94650624; __utmz=94650624.1536199016.26.8.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=(not%20provided); WM_NI=2Uy%2FbtqzhAuF6WR544z5u96yPa%2BfNHlrtTBCGhkg7oAHeZje7SJiXAoA5YNCbyP6gcJ5NYTs5IAJHQBjiFt561sfsS5Xg%2BvZx1OW9mPzJ49pU7Voono9gXq9H0RpP5HTclE%3D; WM_NIKE=9ca17ae2e6ffcda170e2e6eed5cb8085b2ab83ee7b87ac8c87cb60f78da2dac5439b9ca4b1d621f3e900b4b82af0fea7c3b92af28bb7d0e180b3a6a8a2f84ef6899ed6b740baebbbdab57394bfe587cd44b0aebcb5c14985b8a588b6658398abbbe96ff58d868adb4bad9ffbbacd49a2a7a0d7e6698aeb82bad779f7978fabcb5b82b6a7a7f73ff6efbd87f259f788a9ccf552bcef81b8bc6794a686d5bc7c97e99a90ee66ade7a9b9f4338cf09e91d33f8c8cad8dc837e2a3; JSESSIONID-WYYY=G%5CSvabx1X1F0JTg8HK5Z%2BIATVQdgwh77oo%2BDOXuG2CpwvoKPnNTKOGH91AkCHVdm0t6XKQEEnAFP%2BQ35cF49Y%2BAviwQKVN04%2B6ZbeKc2tNOeeC5vfTZ4Cme%2BwZVk7zGkwHJbfjgp1J9Y30o1fMKHOE5rxyhwQw%2B%5CDH6Md%5CpJZAAh2xkZ%3A1536204296617; __utma=94650624.1052021654.1536048185.1536199016.1536203113.27; __utmb=94650624.12.10.1536203113',
-             'Host': 'music.163.com',
-             'Referer': 'http://music.163.com/',
-             'Upgrade-Insecure-Requests': '1',
-             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                           'Chrome/66.0.3359.181 Safari/537.36'}
-
+def get_response(offset,limit):
+    #参数
+    para = {
+        'offset':offset,#页数
+        'limit':limit#总数限制
+    }
+    # 歌曲id
+    musicid = "520458203"  # 《大学无疆》
+    #歌曲api地址
+    musicurl = "http://music.163.com/api/v1/resource/comments/R_SO_4_"+musicid+"?"+urlencode(para)
+    #头结构
+    headers = {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Encoding':'gzip, deflate, sdch',
+        'Accept-Language':'zh-CN,zh;q=0.8',
+        'Cache-Control':'max-age=0',
+        'Connection':'keep-alive',
+        'Cookie':'vjuids=-13ac1c39b.1620457fd8f.0.074295280a4d9; vjlast=1520491298.1520491298.30; _ntes_nnid=3b6a8927fa622b80507863f45a3ace05,1520491298273; _ntes_nuid=3b6a8927fa622b80507863f45a3ace05; vinfo_n_f_l_n3=054cb7c136982ebc.1.0.1520491298299.0.1520491319539; __utma=94650624.1983697143.1521098920.1521794858.1522041716.3; __utmz=94650624.1521794858.2.2.utmcsr=baidu|utmccn=(organic)|utmcmd=organic; JSESSIONID-WYYY=FYtmJTTpVwmbihVrUad6u76CKxuzXZnfYyPZfK9bi%5CarU936rIdoIiVU50pfQ6JwjGgBvSyZO0%2FR%2BcoboKdPuMztgHCJwzyIgx1ON4v%2BJ2mOvARluNGpRo6lmhA%5CfcfCd3EwdS88sPgxpiiXN%5C6HZZEMQdNRSaHJlcN%5CXY657Faklqdh%3A1522053962445; _iuqxldmzr_=32',
+        'Host':'music.163.com',
+        'Upgrade-Insecure-Requests':'1',
+        'User-Agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.221 Safari/537.36 SE 2.X MetaSr 1.0'
+    }
+    #代理IP
+    proxies= {
+        'http:':'http://121.232.146.184',
+        'https:':'https://144.255.48.197'
+    }
     try:
-        r = requests.post(url, headers=headers, data=data)
-        r.encoding = "utf-8"
-        if r.status_code == 200:
+        response = requests.post(musicurl,headers=headers,proxies=proxies)
+        if response.status_code == 200:
+            return response.content
+    except RequestException:
+        print("访问出错")
 
-            # 返回json格式的数据
-            return r.json()
+#解析返回页
+def parse_return(html):
+    data = json.loads(html)#将返回的值格式化为json
+    if data.get('hotComments'):
+        hotcomm = data['hotComments']
+        print('--------------------------------------------------------------这是热门评论-------------------------------------------------------------------------------')
+        for hotitem in hotcomm:
+            hotdata = {
+                '用户名': hotitem['user']['nickname'],
+                '用户头像': hotitem['user']['avatarUrl'],
+                'content': hotitem['content'],
+                '赞':hotitem['likedCount']
+            }
+            print(hotdata)
+        print('------------------------------------------------------------------------------------------------------------------------------------------------------------')
+    # else:
+    #     print('--------------------------------------------------')
+    if data.get('comments'):
+        comm = data['comments']
+        for item in comm:
+            data = {
+                '用户名': item['user']['nickname'],
+                '用户头像': item['user']['avatarUrl'],
+                'content': item['content'].replace('\r', ' '),
+                '赞': item['likedCount']
+            }
+            print(data)
+        print('-------------------------------------------------------------------------------------------------------------------------------------------------------------')
+def main(offset):
+    gethtml = get_response(offset,200)
+    parse_return(gethtml)
 
-    except:
-        print("爬取失败!")
-
-
-# 生成16个随机字符
-def generate_random_strs(length):
-    string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    # 控制次数参数i
-    i = 0
-    # 初始化随机字符串
-    random_strs  = ""
-    while i < length:
-        e = random.random() * len(string)
-        # 向下取整
-        e = math.floor(e)
-        random_strs = random_strs + list(string)[e]
-        i = i + 1
-    return random_strs
-
-
-# AES加密
-def AESencrypt(msg, key):
-    # 如果不是16的倍数则进行填充(paddiing)
-    padding = 16 - len(msg) % 16
-    # 这里使用padding对应的单字符进行填充
-    msg = msg + padding * chr(padding)
-    # 用来加密或者解密的初始向量(必须是16位)
-    iv = '0102030405060708'
-
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    # 加密后得到的是bytes类型的数据
-    encryptedbytes = cipher.encrypt(msg)
-    # 使用Base64进行编码,返回byte字符串
-    encodestrs = base64.b64encode(encryptedbytes)
-    # 对byte字符串按utf-8进行解码
-    enctext = encodestrs.decode('utf-8')
-
-    return enctext
-
-
-# RSA加密
-def RSAencrypt(randomstrs, key, f):
-    # 随机字符串逆序排列
-    string = randomstrs[::-1]
-    # 将随机字符串转换成byte类型数据
-    text = bytes(string, 'utf-8')
-    seckey = int(codecs.encode(text, encoding='hex'), 16)**int(key, 16) % int(f, 16)
-    return format(seckey, 'x').zfill(256)
-
-# 获取参数
-def get_params(page):
-    # msg也可以写成msg = {"offset":"页面偏移量=(页数-1) *　20", "limit":"20"},offset和limit这两个参数必须有(js)
-    # limit最大值为100,当设为100时,获取第二页时,默认前一页是20个评论,也就是说第二页最新评论有80个,有20个是第一页显示的
-    # msg = '{"rid":"R_SO_4_1302938992","offset":"0","total":"True","limit":"100","csrf_token":""}'
-    # 偏移量
-    offset = (page-1) * 20
-    # offset和limit是必选参数,其他参数是可选的,其他参数不影响data数据的生成
-    msg = '{"offset":' + str(offset) + ',"total":"True","limit":"20","csrf_token":""}'
-    key = '0CoJUm6Qyw8W8jud'
-    f = '00e0b509f6259df8642dbc35662901477df22677ec152b5ff68ace615bb7b725152b3ab17a876aea8a5aa76d2e417629ec4ee341f56135fccf695280104e0312ecbda92557c93870114af6c9d05c4f7f0c3685b7a46bee255932575cce10b424d813cfe4875d3e82047b97ddef52741d546b8e289dc6935b3ece0462db0a22b8e7'
-    e = '010001'
-
-    enctext = AESencrypt(msg, key)
-    # 生成长度为16的随机字符串
-    i = generate_random_strs(16)
-
-    # 两次AES加密之后得到params的值
-    encText = AESencrypt(enctext, i)
-    # RSA加密之后得到encSecKey的值
-    encSecKey = RSAencrypt(i, e, f)
-    return encText, encSecKey
-
-
-def main():
-    # 歌曲id号
-    songid = 1300994613
-
-    # 歌曲名字
-    songname = "那个女孩"
-    # 文件存储路径
-
-    page = 1
-
-    params, encSecKey = get_params(page)
-
-    url = 'https://music.163.com/weapi/v1/resource/comments/R_SO_4_' + str(songid) + '?csrf_token='
-    data = {'params': params, 'encSecKey': encSecKey}
-    html = get_comments_json(url, data)
-
-    # 评论总数
-    total = html['total']
-    print("评论总数"+ str(total))
-
-if __name__ == "__main__":
-    main()
-
+if __name__ == '__main__':
+    # groups = [x*20 for x in range(0,20)]
+    # pool = Pool()
+    # pool.map(main,groups)
+    for x in range(0,20):
+        main(x*20)
