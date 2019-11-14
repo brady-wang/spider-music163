@@ -1,16 +1,7 @@
 #! /usr/bin/env python
 # coding='utf-8'
 
-'''
 
-获取网易云音乐歌曲全部评论
-Author: zhouzying
-URL: https://www.zhouzying.cn
-Date: 2018-09-14
-Update: 2018-09-27         Add data argument.
-Update: 2018-10-04         Get replied comments and add users name who shared comments.
-
-'''
 
 
 import requests
@@ -92,7 +83,6 @@ def RSAencrypt(randomstrs, key, f):
     seckey = int(codecs.encode(text, encoding='hex'), 16)**int(key, 16) % int(f, 16)
     return format(seckey, 'x').zfill(256)
 
-
 # 获取参数
 def get_params(page):
     # msg也可以写成msg = {"offset":"页面偏移量=(页数-1) *　20", "limit":"20"},offset和limit这两个参数必须有(js)
@@ -105,6 +95,7 @@ def get_params(page):
     key = '0CoJUm6Qyw8W8jud'
     f = '00e0b509f6259df8642dbc35662901477df22677ec152b5ff68ace615bb7b725152b3ab17a876aea8a5aa76d2e417629ec4ee341f56135fccf695280104e0312ecbda92557c93870114af6c9d05c4f7f0c3685b7a46bee255932575cce10b424d813cfe4875d3e82047b97ddef52741d546b8e289dc6935b3ece0462db0a22b8e7'
     e = '010001'
+
     enctext = AESencrypt(msg, key)
     # 生成长度为16的随机字符串
     i = generate_random_strs(16)
@@ -116,92 +107,25 @@ def get_params(page):
     return encText, encSecKey
 
 
-def hotcomments(html, songname, i, pages, total, filepath):
-    # 写入文件
-    with open(filepath, 'a', encoding='utf-8') as f:
-        f.write("正在获取歌曲{}的第{}页评论,总共有{}页{}条评论！\n".format(songname, i, pages, total))
-    print("正在获取歌曲{}的第{}页评论,总共有{}页{}条评论！\n".format(songname, i, pages, total))
-
-    # 精彩评论
-    m = 1
-    # 键在字典中则返回True, 否则返回False
-    if 'hotComments' in html:
-        for item in html['hotComments']:
-            # 提取发表热门评论的用户名
-            user = item['user']
-            # 写入文件
-            print("热门评论{}: {} : {}    点赞次数: {}".format(m, user['nickname'], item['content'], item['likedCount']))
-            with open(filepath, 'a', encoding='utf-8') as f:
-                f.write("热门评论{}: {} : {}   点赞次数: {}\n".format(m, user['nickname'], item['content'], item['likedCount']))
-                # 回复评论
-                if len(item['beReplied']) != 0:
-                    for reply in item['beReplied']:
-                        # 提取发表回复评论的用户名
-                        replyuser = reply['user']
-                        print("回复：{} : {}".format(replyuser['nickname'], reply['content']))
-                        f.write("回复：{} : {}\n".format(replyuser['nickname'], reply['content']))
-            m += 1
-
-
-def comments(html, songname, i, pages, total, filepath):
-    with open(filepath, 'a', encoding='utf-8') as f:
-        f.write("\n正在获取歌曲{}的第{}页评论,总共有{}页{}条评论！\n".format(songname, i, pages, total))
-    print("\n正在获取歌曲{}的第{}页评论,总共有{}页{}条评论！\n".format(songname, i, pages, total))
-    # 全部评论
-    j = 1
-    for item in html['comments']:
-        # 提取发表评论的用户名
-        user = item['user']
-        print("全部评论{}: {} : {}    点赞次数: {}".format(j, user['nickname'], item['content'], item['likedCount']))
-        with open(filepath, 'a', encoding='utf-8') as f:
-
-            f.write("全部评论{}: {} : {}   点赞次数: {}\n".format(j, user['nickname'], item['content'], item['likedCount']))
-            # 回复评论
-            if len(item['beReplied']) != 0:
-                for reply in item['beReplied']:
-                    # 提取发表回复评论的用户名
-                    replyuser = reply['user']
-                    print("回复：{} : {}".format(replyuser['nickname'], reply['content']))
-                    f.write("回复：{} : {}\n".format(replyuser['nickname'], reply['content']))
-
-        j += 1
-
-
 def main():
-
     # 歌曲id号
-    songid = 38592976
+    songid = 1300994613
 
     # 歌曲名字
-    songname = "Dream it possible"
+    songname = "那个女孩"
     # 文件存储路径
-    filepath = songname + ".txt"
+
     page = 1
+
     params, encSecKey = get_params(page)
 
     url = 'https://music.163.com/weapi/v1/resource/comments/R_SO_4_' + str(songid) + '?csrf_token='
     data = {'params': params, 'encSecKey': encSecKey}
-    # url = 'https://music.163.com/#/song?id=19292984'
-    # 获取第一页评论
     html = get_comments_json(url, data)
+
     # 评论总数
     total = html['total']
-    # 总页数
-    pages = math.ceil(total / 20)
-    hotcomments(html, songname, page, pages, total, filepath)
-    comments(html, songname, page, pages, total, filepath)
-
-    # 开始获取歌曲的全部评论
-    page = 2
-    while page <= pages:
-
-        params, encSecKey = get_params(page)
-        data = {'params': params, 'encSecKey': encSecKey}
-        html = get_comments_json(url, data)
-        # 从第二页开始获取评论
-        comments(html, songname, page, pages, total, filepath)
-        page += 1
-
+    print("评论总数"+ str(total))
 
 if __name__ == "__main__":
     main()
