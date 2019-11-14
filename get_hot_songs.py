@@ -7,7 +7,7 @@ import csv
 
 # 将获得的歌手的热门歌曲id和名字写入csv文件
 def write_to_csv(song_name,song_url, artist_name):
-    csvfile = open('./songs/' + artist_name + ".csv", 'a', encoding='utf-8', newline='')  # 文件存储的位置
+    csvfile = open('./songs/hotsongs.csv', 'a', encoding='utf-8', newline='')  # 文件存储的位置
     writer = csv.writer(csvfile)
     writer.writerow(('歌曲名称', '歌曲url'))
 
